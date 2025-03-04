@@ -16,7 +16,7 @@ TRANSPARENT = (0, 0, 0, 0)    # 透明
 
 # 描画設定
 BACKGROUND_COLOR = TRANSPARENT  # 背景色
-STROKE_COLOR = WHITE           # 線の色（WHITE/BLACKを切り替え）
+STROKE_COLOR = BLACK           # 線の色（WHITE/BLACKを切り替え）
 
 def draw_divisions(x, y, w, h, depth=0):
     """再帰的に分割線を描画する
