@@ -6,6 +6,9 @@ gap = 16  # 正方形間の間隔
 cols = 8  # 横方向の正方形の数
 rows = 6  # 縦方向の正方形の数
 corner_radius = 20  # 角の丸みの半径
+arrow_width = 40  # 矢印の太さ
+arrow_corner_radius = 20  # 矢印の曲がり角の丸みの半径
+arrow_visual_offset = 8  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
 color_blue = (0, 0, 255, 255)    # 青
@@ -51,6 +54,56 @@ for col_range, row_range, color in square_definitions:
                 radius=corner_radius,
                 fill=color
             )
+
+# グリッド座標からピクセル座標（中心）への変換
+def grid_to_pixel(col, row):
+    x = col * (square_size + gap) + square_size // 2
+    y = row * (square_size + gap) + square_size // 2
+    return x, y
+
+# 折れ曲がった矢印を描画
+# 経路: (5,4) → (3,4) → (3,2) → (5,2) → (5,3) → (7,3)
+arrow_color = (0, 0, 0, 255)  # 黒
+
+# 各セグメントの座標を計算
+p1 = grid_to_pixel(5, 4)
+p2 = grid_to_pixel(3, 4)
+p3 = grid_to_pixel(3, 2)
+p4 = grid_to_pixel(5, 2)
+p5 = grid_to_pixel(5, 3)
+p6 = grid_to_pixel(7, 3)
+
+# 矢印の半幅
+half_width = arrow_width // 2
+
+# セグメント1: (5,4) → (3,4) 水平線（左へ）
+draw.rectangle([p2[0], p1[1] - half_width, p1[0], p1[1] + half_width], fill=arrow_color)
+
+# セグメント2: (3,4) → (3,2) 垂直線（上へ）
+draw.rectangle([p3[0] - half_width, p3[1], p2[0] + half_width, p2[1]], fill=arrow_color)
+
+# セグメント3: (3,2) → (5,2) 水平線（右へ）
+draw.rectangle([p3[0], p4[1] - half_width, p4[0], p3[1] + half_width], fill=arrow_color)
+
+# セグメント4: (5,2) → (5,3) 垂直線（下へ）
+draw.rectangle([p4[0] - half_width, p4[1], p5[0] + half_width, p5[1]], fill=arrow_color)
+
+# セグメント5: (5,3) → (7,3) 水平線（右へ）- 矢印の根元まで
+arrow_head_size = arrow_width * 1.5
+arrow_head_offset = arrow_head_size / 2  # 三角形の中心を正方形の中心に合わせるためのオフセット
+draw.rectangle([p5[0], p6[1] - half_width, p6[0] - arrow_head_offset + arrow_visual_offset, p5[1] + half_width], fill=arrow_color)
+
+# 曲がり角を丸くする（円で接続部分を描画）
+for center in [p2, p3, p4, p5]:
+    draw.ellipse([center[0] - half_width, center[1] - half_width, 
+                  center[0] + half_width, center[1] + half_width], fill=arrow_color)
+
+# 矢印の先端を描画（三角形）- 三角形の中心が正方形の中心になるように（視覚調整込み）
+draw.polygon([
+    (p6[0] + arrow_head_offset + arrow_visual_offset, p6[1]),  # 先端
+    (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] - arrow_head_size // 2),
+    (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] + arrow_head_size // 2)
+], fill=arrow_color)
 
 # 画像を保存
 img.save('grid_squares.png')
