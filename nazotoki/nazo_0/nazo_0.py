@@ -11,13 +11,14 @@ arrow_corner_radius = 20  # 矢印の曲がり角の丸みの半径
 arrow_visual_offset = 8  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
-color_blue = (0, 0, 255, 255)    # 青
-color_yellow = (255, 255, 0, 255)  # 黄
-color_green = (0, 255, 0, 255)   # 緑
-color_pink = (255, 192, 203, 255)  # ピンク
-color_light_yellow = (255, 255, 200, 255)  # 薄い黄色
-color_light_pink = (255, 230, 240, 255)    # 薄いピンク
-color_light_green = (200, 255, 200, 255)   # 薄い緑
+color_blue = (31, 137, 229, 255)    # 青
+color_yellow = (249, 209, 78, 255)  # 黄
+color_green = (76, 174, 79, 255)    # 緑
+color_pink = (255, 102, 196, 255)   # ピンク
+color_light_blue = (143, 196, 242, 255)    # 薄い青 (元の色と白の中間)
+color_light_yellow = (252, 232, 166, 255)  # 薄い黄色 (元の色と白の中間)
+color_light_pink = (255, 178, 225, 255)    # 薄いピンク (元の色と白の中間)
+color_light_green = (165, 214, 167, 255)   # 薄い緑 (元の色と白の中間)
 
 # 描画する正方形の定義 [(col範囲, row範囲, 色)]
 # 注意: 範囲は[開始, 終了]（終了を含む）
@@ -36,8 +37,8 @@ square_definitions = [
 canvas_width = cols * square_size + (cols - 1) * gap
 canvas_height = rows * square_size + (rows - 1) * gap
 
-# RGBA画像を作成（背景は透明）
-img = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+# RGBA画像を作成（背景は白）
+img = Image.new('RGBA', (canvas_width, canvas_height), (255, 255, 255, 255))
 draw = ImageDraw.Draw(img)
 
 # 定義に従って正方形を描画
