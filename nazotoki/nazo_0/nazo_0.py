@@ -11,11 +11,11 @@ arrow_corner_radius = 20  # 矢印の曲がり角の丸みの半径
 arrow_visual_offset = 8  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
-color_blue = (31, 137, 229, 255)    # 青
+color_blue = (25, 118, 210, 255)    # 青
 color_yellow = (249, 209, 78, 255)  # 黄
 color_green = (76, 174, 79, 255)    # 緑
 color_pink = (255, 102, 196, 255)   # ピンク
-color_light_blue = (143, 196, 242, 255)    # 薄い青 (元の色と白の中間)
+color_light_blue = (140, 186, 232, 255)    # 薄い青 (元の色と白の中間)
 color_light_yellow = (252, 232, 166, 255)  # 薄い黄色 (元の色と白の中間)
 color_light_pink = (255, 178, 225, 255)    # 薄いピンク (元の色と白の中間)
 color_light_green = (165, 214, 167, 255)   # 薄い緑 (元の色と白の中間)
