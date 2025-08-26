@@ -6,9 +6,9 @@ gap = 64  # 正方形間の間隔
 cols = 8  # 横方向の正方形の数
 rows = 6  # 縦方向の正方形の数
 corner_radius = 80  # 角の丸みの半径
-arrow_width = 60  # 矢印の太さ
-arrow_head_size_multiplier = 1.5  # 矢印の先端サイズ（arrow_widthに対する倍率）
-arrow_visual_offset = 16  # 矢印の視覚調整用右シフト量
+arrow_width = 40  # 矢印の太さ
+arrow_head_size_multiplier = 3  # 矢印の先端サイズ（arrow_widthに対する倍率）
+arrow_visual_offset = 30  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
 background_color = (255, 255, 255, 255)  # 背景色（白）
@@ -20,7 +20,7 @@ color_light_blue = (140, 186, 232, 255)    # 薄い青 (元の色と白の中間
 color_light_yellow = (250, 225, 160, 255)  # 薄い黄色 (元の色と白の中間)
 color_light_pink = (255, 178, 225, 255)    # 薄いピンク (元の色と白の中間)
 color_light_green = (160, 207, 162, 255)   # 薄い緑 (元の色と白の中間)
-arrow_color = (0, 0, 0, 255)  # 矢印の色（黒）
+arrow_color = (10, 10, 10, 255)  # 矢印の色（黒）
 
 # 描画する正方形の定義 [(col範囲, row範囲, 色)]
 # 注意: 範囲は[開始, 終了]（終了を含む）
