@@ -95,7 +95,7 @@ arrow_head_offset = arrow_head_size / 2  # 三角形の中心を正方形の中�
 draw.rectangle([p5[0], p6[1] - half_width, p6[0] - arrow_head_offset + arrow_visual_offset, p5[1] + half_width], fill=arrow_color)
 
 # 曲がり角を丸くする（円で接続部分を描画）
-for center in [p2, p3, p4, p5]:
+for center in [p1, p2, p3, p4, p5]:
     draw.ellipse([center[0] - half_width, center[1] - half_width, 
                   center[0] + half_width, center[1] + half_width], fill=arrow_color)
 
