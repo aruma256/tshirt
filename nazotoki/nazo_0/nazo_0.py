@@ -1,14 +1,14 @@
 from PIL import Image, ImageDraw
 
 # パラメータ設定
-square_size = 256  # 正方形の1辺のサイズ
-gap = 16  # 正方形間の間隔
+square_size = 512  # 正方形の1辺のサイズ
+gap = 64  # 正方形間の間隔
 cols = 8  # 横方向の正方形の数
 rows = 6  # 縦方向の正方形の数
-corner_radius = 20  # 角の丸みの半径
-arrow_width = 40  # 矢印の太さ
+corner_radius = 80  # 角の丸みの半径
+arrow_width = 60  # 矢印の太さ
 arrow_corner_radius = 20  # 矢印の曲がり角の丸みの半径
-arrow_visual_offset = 8  # 矢印の視覚調整用右シフト量
+arrow_visual_offset = 16  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
 color_blue = (25, 118, 210, 255)    # 青
