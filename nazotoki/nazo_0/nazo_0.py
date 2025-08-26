@@ -7,10 +7,11 @@ cols = 8  # 横方向の正方形の数
 rows = 6  # 縦方向の正方形の数
 corner_radius = 80  # 角の丸みの半径
 arrow_width = 60  # 矢印の太さ
-arrow_corner_radius = 20  # 矢印の曲がり角の丸みの半径
+arrow_head_size_multiplier = 1.5  # 矢印の先端サイズ（arrow_widthに対する倍率）
 arrow_visual_offset = 16  # 矢印の視覚調整用右シフト量
 
 # 色の定義 (RGBA形式)
+background_color = (255, 255, 255, 255)  # 背景色（白）
 color_blue = (25, 118, 210, 255)    # 青
 color_yellow = (245, 195, 65, 255)  # 黄
 color_green = (65, 160, 70, 255)    # 緑
@@ -19,6 +20,7 @@ color_light_blue = (140, 186, 232, 255)    # 薄い青 (元の色と白の中間
 color_light_yellow = (250, 225, 160, 255)  # 薄い黄色 (元の色と白の中間)
 color_light_pink = (255, 178, 225, 255)    # 薄いピンク (元の色と白の中間)
 color_light_green = (160, 207, 162, 255)   # 薄い緑 (元の色と白の中間)
+arrow_color = (0, 0, 0, 255)  # 矢印の色（黒）
 
 # 描画する正方形の定義 [(col範囲, row範囲, 色)]
 # 注意: 範囲は[開始, 終了]（終了を含む）
@@ -37,8 +39,8 @@ square_definitions = [
 canvas_width = cols * square_size + (cols - 1) * gap
 canvas_height = rows * square_size + (rows - 1) * gap
 
-# RGBA画像を作成（背景は白）
-img = Image.new('RGBA', (canvas_width, canvas_height), (255, 255, 255, 255))
+# RGBA画像を作成
+img = Image.new('RGBA', (canvas_width, canvas_height), background_color)
 draw = ImageDraw.Draw(img)
 
 # 定義に従って正方形を描画
@@ -64,7 +66,6 @@ def grid_to_pixel(col, row):
 
 # 折れ曲がった矢印を描画
 # 経路: (5,4) → (3,4) → (3,2) → (5,2) → (5,3) → (7,3)
-arrow_color = (0, 0, 0, 255)  # 黒
 
 # 各セグメントの座標を計算
 p1 = grid_to_pixel(5, 4)
@@ -90,7 +91,7 @@ draw.rectangle([p3[0], p4[1] - half_width, p4[0], p3[1] + half_width], fill=arro
 draw.rectangle([p4[0] - half_width, p4[1], p5[0] + half_width, p5[1]], fill=arrow_color)
 
 # セグメント5: (5,3) → (7,3) 水平線（右へ）- 矢印の根元まで
-arrow_head_size = arrow_width * 1.5
+arrow_head_size = arrow_width * arrow_head_size_multiplier
 arrow_head_offset = arrow_head_size / 2  # 三角形の中心を正方形の中心に合わせるためのオフセット
 draw.rectangle([p5[0], p6[1] - half_width, p6[0] - arrow_head_offset + arrow_visual_offset, p5[1] + half_width], fill=arrow_color)
 
