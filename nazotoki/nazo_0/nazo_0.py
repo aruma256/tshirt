@@ -9,6 +9,7 @@ corner_radius = 80  # 角の丸みの半径
 arrow_width = 40  # 矢印の太さ
 arrow_head_size_multiplier = 3  # 矢印の先端サイズ（arrow_widthに対する倍率）
 arrow_visual_offset = 30  # 矢印の視覚調整用右シフト量
+light_color_white_blend = 0.5  # 薄い色の白との混合率（0.0=元の色、1.0=白）
 
 # 色の定義 (RGBA形式)
 background_color = (255, 255, 255, 255)  # 背景色（白）
@@ -16,10 +17,18 @@ color_blue = (25, 118, 210, 255)    # 青
 color_yellow = (245, 195, 65, 255)  # 黄
 color_green = (65, 160, 70, 255)    # 緑
 color_pink = (255, 102, 196, 255)   # ピンク
-color_light_blue = (140, 186, 232, 255)    # 薄い青 (元の色と白の中間)
-color_light_yellow = (250, 225, 160, 255)  # 薄い黄色 (元の色と白の中間)
-color_light_pink = (255, 178, 225, 255)    # 薄いピンク (元の色と白の中間)
-color_light_green = (160, 207, 162, 255)   # 薄い緑 (元の色と白の中間)
+
+# 薄い色を計算で生成する関数
+def blend_with_white(color, ratio):
+    """元の色と白を指定した比率で混合する"""
+    return tuple(int(c + (255 - c) * ratio) for c in color)
+
+# 薄い色を自動計算
+color_light_blue = blend_with_white(color_blue, light_color_white_blend)
+color_light_yellow = blend_with_white(color_yellow, light_color_white_blend)
+color_light_green = blend_with_white(color_green, light_color_white_blend)
+color_light_pink = blend_with_white(color_pink, light_color_white_blend)
+
 arrow_color = (10, 10, 10, 255)  # 矢印の色（黒）
 
 # 描画する正方形の定義 [(col範囲, row範囲, 色)]
