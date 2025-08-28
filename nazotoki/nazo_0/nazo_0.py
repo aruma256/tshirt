@@ -18,6 +18,9 @@ color_yellow = (245, 195, 65, 255)  # 黄
 color_green = (65, 160, 70, 255)    # 緑
 color_pink = (255, 102, 196, 255)   # ピンク
 
+# https://colormagic.app/palette/68aae4303ba959eab311e428
+# https://colormagic.app/palette/68aae1b13ba959eab311e3fb
+
 # 薄い色を計算で生成する関数
 def blend_with_white(color, ratio):
     """元の色と白を指定した比率で混合する"""
