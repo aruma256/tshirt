@@ -91,8 +91,8 @@ p6 = grid_to_pixel(7, 3)
 arrow_head_size = arrow_width * arrow_head_size_multiplier
 arrow_head_offset = arrow_head_size / 2  # 三角形の中心を正方形の中心に合わせるためのオフセット
 
-# 矢印の本体を線で描画（先端の手前まで）
-arrow_path = [p1, p2, p3, p4, p5, (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1])]
+# 矢印の本体を線で描画（先端の「>」の頂点まで延長）
+arrow_path = [p1, p2, p3, p4, p5, (p6[0] + arrow_head_offset + arrow_visual_offset, p6[1])]
 draw.line(arrow_path, fill=arrow_color, width=arrow_width, joint="curve")
 
 # 始点と終点の丸みを追加（jointは接続部分のみに適用されるため）
@@ -100,12 +100,23 @@ half_width = arrow_width // 2
 draw.ellipse([p1[0] - half_width, p1[1] - half_width, 
               p1[0] + half_width, p1[1] + half_width], fill=arrow_color)
 
-# 矢印の先端を描画（三角形）- 三角形の中心が正方形の中心になるように（視覚調整込み）
-draw.polygon([
-    (p6[0] + arrow_head_offset + arrow_visual_offset, p6[1]),  # 先端
-    (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] - arrow_head_size // 2),
-    (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] + arrow_head_size // 2)
-], fill=arrow_color)
+# 矢印の先端を描画（「>」形状）
+# 先端の頂点座標
+tip_point = (p6[0] + arrow_head_offset + arrow_visual_offset, p6[1])
+# 上側の始点
+upper_start = (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] - arrow_head_size // 2)
+# 下側の始点
+lower_start = (p6[0] - arrow_head_offset + arrow_visual_offset, p6[1] + arrow_head_size // 2)
+
+# 上側の線分を描画
+draw.line([upper_start, tip_point], fill=arrow_color, width=arrow_width)
+# 下側の線分を描画
+draw.line([lower_start, tip_point], fill=arrow_color, width=arrow_width)
+
+# 3つの端点に丸を描画（線の端を丸くするため）
+for point in [upper_start, lower_start, tip_point]:
+    draw.ellipse([point[0] - half_width, point[1] - half_width,
+                  point[0] + half_width, point[1] + half_width], fill=arrow_color)
 
 # 画像を保存
 img.save('grid_squares.png')
