@@ -1,8 +1,8 @@
+from math import sqrt
 from PIL import Image, ImageDraw
 
 # パラメータ設定（ここだけを変更すれば全体のレイアウトが連動する）
-LETTER_WIDTH = 400          # 1文字の横幅
-LETTER_HEIGHT = 600         # 1文字の縦幅
+LETTER_WIDTH = 400          # 1文字の横幅（縦は黄金比で導出）
 LETTER_GAP = 100            # 文字間の間隔
 CORNER_RADIUS = 35          # 角丸半径（三角モードでは三角カットの一辺）
 L_CUTOUT_SIZE = CORNER_RADIUS  # Lの右上くり抜きサイズ（意味的に分離）
@@ -13,7 +13,9 @@ CORNER_MODE = "triangle"
 TEXT_COLOR = (255, 255, 255, 255)
 BACKGROUND_COLOR = (0, 0, 0, 0)
 
-# キャンバスサイズを導出
+# 導出値
+GOLDEN_RATIO = (1 + sqrt(5)) / 2
+LETTER_HEIGHT = round(LETTER_WIDTH * GOLDEN_RATIO)
 NUM_LETTERS = 4
 CANVAS_WIDTH = NUM_LETTERS * LETTER_WIDTH + (NUM_LETTERS - 1) * LETTER_GAP
 CANVAS_HEIGHT = LETTER_HEIGHT
