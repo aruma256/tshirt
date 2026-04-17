@@ -12,7 +12,7 @@ arrow_visual_offset = 9  # 矢印の視覚調整用右シフト量
 light_color_white_blend = 0.54  # 薄い色の白との混合率（0.0=元の色、1.0=白）
 
 # 色の定義 (RGBA形式)
-background_color = (255, 255, 255, 255)  # 背景色（白）
+background_color = (255, 255, 255, 0)  # 背景色（白）
 color_blue = (25, 118, 210, 255)    # 青
 color_yellow = (245, 195, 65, 255)  # 黄
 color_green = (65, 160, 70, 255)    # 緑
