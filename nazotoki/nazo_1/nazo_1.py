@@ -2,9 +2,9 @@ from math import sqrt
 from PIL import Image, ImageDraw
 
 # パラメータ設定（ここだけを変更すれば全体のレイアウトが連動する）
-LETTER_WIDTH = 400          # 1文字の横幅（縦は黄金比で導出）
-LETTER_GAP = 100            # 文字間の間隔
-CORNER_RADIUS = 35          # 角丸半径（三角モードでは三角カットの一辺）
+LETTER_WIDTH = 1200         # 1文字の横幅（縦は黄金比で導出）
+LETTER_GAP = 300            # 文字間の間隔
+CORNER_RADIUS = 105         # 角丸半径（三角モードでは三角カットの一辺）
 L_CUTOUT_SIZE = CORNER_RADIUS  # Lの右上くり抜きサイズ（意味的に分離）
 
 # "rounded" = 角丸モード / "triangle" = 三角カットモード
