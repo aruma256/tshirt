@@ -8,7 +8,7 @@ rows = 6  # 縦方向の正方形の数
 corner_radius = 80  # 角の丸みの半径
 arrow_width = 41  # 矢印の太さ
 arrow_head_size_multiplier = 3  # 矢印の先端サイズ（arrow_widthに対する倍率）
-arrow_visual_offset = 14  # 矢印の視覚調整用右シフト量
+arrow_visual_offset = 9  # 矢印の視覚調整用右シフト量
 light_color_white_blend = 0.54  # 薄い色の白との混合率（0.0=元の色、1.0=白）
 
 # 色の定義 (RGBA形式)
