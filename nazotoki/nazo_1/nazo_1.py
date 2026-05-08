@@ -4,11 +4,11 @@ from PIL import Image, ImageDraw
 # パラメータ設定（ここだけを変更すれば全体のレイアウトが連動する）
 LETTER_WIDTH = 1200         # 1文字の横幅（縦は黄金比で導出）
 LETTER_GAP = 0              # 文字間の間隔
-CORNER_RADIUS = 210         # 角丸半径（三角モードでは三角カットの一辺）
+CORNER_RADIUS = 150         # 角丸半径（三角モードでは三角カットの一辺）
 L_CUTOUT_SIZE = CORNER_RADIUS  # Lの右上くり抜きサイズ（意味的に分離）
 
 # "rounded" = 角丸モード / "triangle" = 三角カットモード
-CORNER_MODE = "triangle"
+CORNER_MODE = "rounded"
 
 TEXT_COLOR = (255, 255, 255, 255)
 BACKGROUND_COLOR = (0, 0, 0, 0)
@@ -83,16 +83,27 @@ def draw_O(x, y):
 
 
 def draw_L(x, y):
-    """L: 長方形の右上を正方形でくり抜いた形（モードに関わらず正方形）。"""
+    """L: 長方形の右上をくり抜いた形。
+    rounded モードでは逆R（凹型クォーターディスク、外角中心）、
+    triangle モードでは正方形でくり抜く。"""
     draw.rectangle(
         [x, y, x + LETTER_WIDTH, y + LETTER_HEIGHT],
         fill=TEXT_COLOR,
     )
-    draw.rectangle(
-        [x + LETTER_WIDTH - L_CUTOUT_SIZE, y,
-         x + LETTER_WIDTH, y + L_CUTOUT_SIZE],
-        fill=BACKGROUND_COLOR,
-    )
+    if CORNER_MODE == "rounded":
+        cx = x + LETTER_WIDTH
+        cy = y
+        draw.ellipse(
+            [cx - L_CUTOUT_SIZE, cy - L_CUTOUT_SIZE,
+             cx + L_CUTOUT_SIZE, cy + L_CUTOUT_SIZE],
+            fill=BACKGROUND_COLOR,
+        )
+    else:
+        draw.rectangle(
+            [x + LETTER_WIDTH - L_CUTOUT_SIZE, y,
+             x + LETTER_WIDTH, y + L_CUTOUT_SIZE],
+            fill=BACKGROUND_COLOR,
+        )
 
 
 def draw_D(x, y):
