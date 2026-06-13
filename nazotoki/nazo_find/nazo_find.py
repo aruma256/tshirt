@@ -13,6 +13,7 @@
 
 import math
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 # ============== パラメータ ==============
@@ -34,20 +35,21 @@ D_OUTLINE = 30         # 中抜き輪郭線の太さ
 D_CY_FRAC = 0.40       # D の縦中心位置（キャンバス高に対する割合）
 
 # --- D の中の F（虫眼鏡で見つける文字） ---
-F_FONT_SIZE = 500      # F のフォントサイズ
+F_FONT_SIZE = 300      # F のフォントサイズ
 F_CX_FRAC = 0.565       # F 中心の x（D の bbox に対する割合）
 F_CY_FRAC = 0.5       # F 中心の y（D の bbox に対する割合）
 
-# --- 虫眼鏡（F の右下に追従させる。基準は F のサイズ） ---
+# --- 虫眼鏡（中心は F に合わせ、レンズの大きさは F サイズと独立） ---
 MAG_OFFSET_X_FRAC = -0.025  # レンズ中心の右オフセット（F 幅に対する割合）
 MAG_OFFSET_Y_FRAC = 0.0  # レンズ中心の下オフセット（F 高に対する割合）
-MAG_LENS_R_FRAC = 0.9    # レンズ外半径（F 高に対する割合）
+MAG_LENS_R = 328       # レンズ外半径（px・絶対値）。F を小さくしてもレンズは不変
 MAG_LENS_W = 30        # レンズ枠の太さ
 MAG_HANDLE_GAP = 60    # リング外縁〜持ち手の付け根の距離（＝細いネックの長さ）
 MAG_NECK_W = 40        # ネック（リングと持ち手をつなぐ細線）の太さ
 MAG_HANDLE_LEN = 550   # 持ち手の先端までの距離（レンズ外縁から）
 MAG_HANDLE_W = 100      # 持ち手の太さ
 MAG_HANDLE_ANGLE = 45  # 持ち手の向き（度・画面座標で右下＝45）
+MAG_BULGE = 2.45       # レンズの中心倍率（虫眼鏡で見たときの“膨張感”。1.0で歪みなし）
 
 # --- 下部の "____ the answer." ---
 BOTTOM_FONT_SIZE = 220  # "the answer." のフォントサイズ
@@ -92,6 +94,46 @@ def round_cap_line(draw, x1, y1, x2, y2, width, fill):
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
 
 
+def apply_lens_bulge(img, cx, cy, radius, mag):
+    """中心 (cx, cy)・半径 radius の円内に、虫眼鏡の“膨張歪み”をかける。
+
+    レンズの物理を模した逆写像（出力ピクセル → 元ピクセル）＋ バイリニア補間。
+      正規化半径 d = r / radius（0..1）に対し、元の半径を
+        src_d = s*d + (1 - s)*d^3   （s = 1/mag）
+      として元画像をサンプルする。中心付近は一様に mag 倍へ拡大され、
+      リムに近づくほど圧縮される（＝実物のレンズらしい樽型の歪み）。
+      d=1（円周）では src_d=1 なので円外と滑らかに連続し、継ぎ目が出ない。
+    円外は一切変更しない。"""
+    arr = np.asarray(img).astype(np.float32)
+    H, W = arr.shape[:2]
+    # 処理は円のバウンディングボックスに限定（全画素を回さない）
+    x0 = max(int(math.floor(cx - radius)), 0)
+    x1 = min(int(math.ceil(cx + radius)) + 1, W)
+    y0 = max(int(math.floor(cy - radius)), 0)
+    y1 = min(int(math.ceil(cy + radius)) + 1, H)
+    ys, xs = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+    dx, dy = xs - cx, ys - cy
+    r = np.sqrt(dx * dx + dy * dy)
+    d = np.clip(r / radius, 0.0, 1.0)
+    s = 1.0 / mag
+    src_d = s * d + (1.0 - s) * d ** 3
+    scale = np.where(r > 1e-6, src_d * radius / r, 0.0)  # 同じ角度・半径だけ縮める
+    sx, sy = cx + dx * scale, cy + dy * scale
+    # バイリニア補間
+    x0i = np.clip(np.floor(sx), 0, W - 1).astype(np.int32)
+    y0i = np.clip(np.floor(sy), 0, H - 1).astype(np.int32)
+    x1i = np.clip(x0i + 1, 0, W - 1)
+    y1i = np.clip(y0i + 1, 0, H - 1)
+    wx = np.clip(sx - x0i, 0.0, 1.0)[..., None]
+    wy = np.clip(sy - y0i, 0.0, 1.0)[..., None]
+    top = arr[y0i, x0i] * (1 - wx) + arr[y0i, x1i] * wx
+    bot = arr[y1i, x0i] * (1 - wx) + arr[y1i, x1i] * wx
+    sampled = top * (1 - wy) + bot * wy
+    inside = (r <= radius)[..., None]
+    arr[y0:y1, x0:x1] = np.where(inside, sampled, arr[y0:y1, x0:x1])
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+
+
 # ============== セットアップ ==============
 img = Image.new("RGBA", (CANVAS_W, CANVAS_H), BG_COLOR)
 draw = ImageDraw.Draw(img)
@@ -117,9 +159,14 @@ fcx, fcy = in_D(F_CX_FRAC, F_CY_FRAC)
 img.alpha_composite(f_layer, (round(fcx - FW / 2), round(fcy - FH / 2)))
 
 # ============== 虫眼鏡（F の右下） ==============
-lens_r = MAG_LENS_R_FRAC * FH
+lens_r = MAG_LENS_R
 lx = fcx + MAG_OFFSET_X_FRAC * FW
 ly = fcy + MAG_OFFSET_Y_FRAC * FH
+# レンズ内に虫眼鏡の“膨張歪み”をかける（リング枠の内側＝ガラスの口径まで）。
+# ここまでに描いた D・F が対象。リング枠／持ち手はこの後に上から描くので歪まない。
+# img を作り直すため draw も貼り直す。
+img = apply_lens_bulge(img, lx, ly, lens_r - MAG_LENS_W / 2, MAG_BULGE)
+draw = ImageDraw.Draw(img)
 # レンズ（リング）
 draw.ellipse([lx - lens_r, ly - lens_r, lx + lens_r, ly + lens_r],
              outline=COLOR, width=MAG_LENS_W)
