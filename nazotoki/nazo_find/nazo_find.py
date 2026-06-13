@@ -43,7 +43,9 @@ MAG_OFFSET_X_FRAC = -0.025  # レンズ中心の右オフセット（F 幅に対
 MAG_OFFSET_Y_FRAC = 0.0  # レンズ中心の下オフセット（F 高に対する割合）
 MAG_LENS_R_FRAC = 0.9    # レンズ外半径（F 高に対する割合）
 MAG_LENS_W = 30        # レンズ枠の太さ
-MAG_HANDLE_LEN = 540   # 持ち手の長さ（レンズ外縁から）
+MAG_HANDLE_GAP = 60    # リング外縁〜持ち手の付け根の距離（＝細いネックの長さ）
+MAG_NECK_W = 40        # ネック（リングと持ち手をつなぐ細線）の太さ
+MAG_HANDLE_LEN = 550   # 持ち手の先端までの距離（レンズ外縁から）
 MAG_HANDLE_W = 100      # 持ち手の太さ
 MAG_HANDLE_ANGLE = 45  # 持ち手の向き（度・画面座標で右下＝45）
 
@@ -121,13 +123,28 @@ ly = fcy + MAG_OFFSET_Y_FRAC * FH
 # レンズ（リング）
 draw.ellipse([lx - lens_r, ly - lens_r, lx + lens_r, ly + lens_r],
              outline=COLOR, width=MAG_LENS_W)
-# 持ち手（レンズ外縁から右下 45 度へ）
+# 持ち手まわり（レンズ外縁から右下 45 度へ）。
+# 構造: リング ─ 細いネック(長さ GAP) ─ 太い持ち手。実物の虫眼鏡に寄せる。
 ang = math.radians(MAG_HANDLE_ANGLE)
 ux, uy = math.cos(ang), math.sin(ang)
-hx1 = lx + ux * (lens_r + MAG_LENS_W / 2)
-hy1 = ly + uy * (lens_r + MAG_LENS_W / 2)
-hx2 = lx + ux * (lens_r + MAG_HANDLE_LEN)
-hy2 = ly + uy * (lens_r + MAG_HANDLE_LEN)
+
+
+def _on_axis(r):
+    return (lx + ux * r, ly + uy * r)
+
+
+# ネック: リング外縁から付け根まで（細線）。
+# butt cap の直線で描くことで、端が内側へ膨らまずレンズ内に食い込まない。
+# 内側端はリング枠の中ほど(lens_r - MAG_LENS_W/2)に潜り込ませて（枠内＝黒で
+# 見えない）隙間なく接続し、外側端は持ち手の付け根に重ねて接続する。
+neck_end = lens_r + MAG_HANDLE_GAP
+draw.line([_on_axis(lens_r - MAG_LENS_W / 2),
+           _on_axis(neck_end + MAG_HANDLE_W / 2)],
+          fill=COLOR, width=MAG_NECK_W)
+
+# 太い持ち手: 付け根(lens_r+GAP)から先端(lens_r+LEN)まで。
+hx1, hy1 = _on_axis(neck_end + MAG_HANDLE_W / 2)
+hx2, hy2 = _on_axis(lens_r + MAG_HANDLE_LEN)
 round_cap_line(draw, hx1, hy1, hx2, hy2, MAG_HANDLE_W, COLOR)
 
 # ============== 下部 "____ the answer." ==============
