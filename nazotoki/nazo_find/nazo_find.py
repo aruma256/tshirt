@@ -18,8 +18,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ============== パラメータ ==============
 # キャンバス（Tシャツ前面プリント向けにやや縦長）
-CANVAS_W = 2000
-CANVAS_H = 2600
+CANVAS_W = 4000
+CANVAS_H = 5200
 
 # 色（黒デザイン）。背景は見やすさ優先で白（入稿時は透過に戻すなら (0,0,0,0)）
 COLOR = (0, 0, 0, 255)
@@ -30,36 +30,36 @@ FONT_PATH = "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"
 FONT_INDEX = 0
 
 # --- 大きな D（中抜き） ---
-D_FONT_SIZE = 2500     # D のフォントサイズ（実寸は bbox で測る）
-D_OUTLINE = 30         # 中抜き輪郭線の太さ
+D_FONT_SIZE = 5000     # D のフォントサイズ（実寸は bbox で測る）
+D_OUTLINE = 60         # 中抜き輪郭線の太さ
 D_CY_FRAC = 0.40       # D の縦中心位置（キャンバス高に対する割合）
 
 # --- D の中の F（虫眼鏡で見つける文字） ---
-F_FONT_SIZE = 300      # F のフォントサイズ
+F_FONT_SIZE = 600      # F のフォントサイズ
 F_CX_FRAC = 0.565       # F 中心の x（D の bbox に対する割合）
 F_CY_FRAC = 0.5       # F 中心の y（D の bbox に対する割合）
 
 # --- 虫眼鏡（中心は F に合わせ、レンズの大きさは F サイズと独立） ---
 MAG_OFFSET_X_FRAC = -0.025  # レンズ中心の右オフセット（F 幅に対する割合）
 MAG_OFFSET_Y_FRAC = 0.0  # レンズ中心の下オフセット（F 高に対する割合）
-MAG_LENS_R = 328       # レンズ外半径（px・絶対値）。F を小さくしてもレンズは不変
-MAG_LENS_W = 30        # レンズ枠の太さ
-MAG_HANDLE_GAP = 60    # リング外縁〜持ち手の付け根の距離（＝細いネックの長さ）
-MAG_NECK_W = 40        # ネック（リングと持ち手をつなぐ細線）の太さ
-MAG_HANDLE_LEN = 550   # 持ち手の先端までの距離（レンズ外縁から）
-MAG_HANDLE_W = 100      # 持ち手の太さ
+MAG_LENS_R = 656       # レンズ外半径（px・絶対値）。F を小さくしてもレンズは不変
+MAG_LENS_W = 60        # レンズ枠の太さ
+MAG_HANDLE_GAP = 120   # リング外縁〜持ち手の付け根の距離（＝細いネックの長さ）
+MAG_NECK_W = 80        # ネック（リングと持ち手をつなぐ細線）の太さ
+MAG_HANDLE_LEN = 1100  # 持ち手の先端までの距離（レンズ外縁から）
+MAG_HANDLE_W = 200      # 持ち手の太さ
 MAG_HANDLE_ANGLE = 45  # 持ち手の向き（度・画面座標で右下＝45）
 MAG_BULGE = 2.45       # レンズの中心倍率（虫眼鏡で見たときの“膨張感”。1.0で歪みなし）
 
 # --- 下部の "____ the answer." ---
-BOTTOM_FONT_SIZE = 220  # "the answer." のフォントサイズ
+BOTTOM_FONT_SIZE = 440  # "the answer." のフォントサイズ
 BOTTOM_TEXT = "the answer."
 BLANK_COUNT = 4         # 下線の本数（= 答え "find" の文字数）
-BLANK_LEN = 95          # 下線 1 本の長さ
-BLANK_W = 12            # 下線の太さ
-BLANK_GAP = 20          # 下線どうしの間隔
-GROUP_GAP = 60          # 下線群と "the answer." の間隔
-BOTTOM_MARGIN = 450     # D の下端から下線ベースラインまでの余白
+BLANK_LEN = 190         # 下線 1 本の長さ
+BLANK_W = 24            # 下線の太さ
+BLANK_GAP = 40          # 下線どうしの間隔
+GROUP_GAP = 120         # 下線群と "the answer." の間隔
+BOTTOM_MARGIN = 900     # D の下端から下線ベースラインまでの余白
 
 
 # ============== ヘルパー ==============
