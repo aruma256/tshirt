@@ -16,10 +16,20 @@ import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+# PIL の「圧縮爆弾」防御上限を解除。画像は自前生成（外部入力なし）で安全であり、
+# SS を上げると巨大グリフの一時画像が既定上限(約1.79億px)を超えて誤検知されるため。
+Image.MAX_IMAGE_PIXELS = None
+
 # ============== パラメータ ==============
 # キャンバス（Tシャツ前面プリント向けにやや縦長）
 CANVAS_W = 4000
 CANVAS_H = 5200
+
+# スーパーサンプリング倍率（内部を SS 倍で描画 → 最後に 1/SS へ高品質縮小）。
+# PIL の図形描画（ellipse/line/rounded_rectangle）は AA されないため、こうして
+# 全体を縮小することで虫眼鏡・下線・レンズ歪みにもまとめてアンチエイリアスをかける。
+# 2 で十分滑らか。3〜4 でさらに高品質（メモリ・処理時間は SS^2 で増える）。
+SS = 4
 
 # 色（黒デザイン）。背景は見やすさ優先で白（入稿時は透過に戻すなら (0,0,0,0)）
 COLOR = (0, 0, 0, 255)
@@ -104,13 +114,17 @@ def apply_lens_bulge(img, cx, cy, radius, mag):
       リムに近づくほど圧縮される（＝実物のレンズらしい樽型の歪み）。
       d=1（円周）では src_d=1 なので円外と滑らかに連続し、継ぎ目が出ない。
     円外は一切変更しない。"""
-    arr = np.asarray(img).astype(np.float32)
+    arr = np.array(img)  # 書き込み可能なコピー（uint8 のまま保持）
     H, W = arr.shape[:2]
     # 処理は円のバウンディングボックスに限定（全画素を回さない）
     x0 = max(int(math.floor(cx - radius)), 0)
     x1 = min(int(math.ceil(cx + radius)) + 1, W)
     y0 = max(int(math.floor(cy - radius)), 0)
     y1 = min(int(math.ceil(cy + radius)) + 1, H)
+    # 円を含む小領域だけ float 化（全画素を float にしない＝SS を上げても省メモリ）。
+    # src_d <= d なのでサンプル点は必ず半径内＝この小領域内に収まり、ローカル参照で足りる。
+    region = arr[y0:y1, x0:x1].astype(np.float32)
+    rh, rw = region.shape[:2]
     ys, xs = np.mgrid[y0:y1, x0:x1].astype(np.float32)
     dx, dy = xs - cx, ys - cy
     r = np.sqrt(dx * dx + dy * dy)
@@ -118,21 +132,43 @@ def apply_lens_bulge(img, cx, cy, radius, mag):
     s = 1.0 / mag
     src_d = s * d + (1.0 - s) * d ** 3
     scale = np.where(r > 1e-6, src_d * radius / r, 0.0)  # 同じ角度・半径だけ縮める
-    sx, sy = cx + dx * scale, cy + dy * scale
-    # バイリニア補間
-    x0i = np.clip(np.floor(sx), 0, W - 1).astype(np.int32)
-    y0i = np.clip(np.floor(sy), 0, H - 1).astype(np.int32)
-    x1i = np.clip(x0i + 1, 0, W - 1)
-    y1i = np.clip(y0i + 1, 0, H - 1)
+    sx = (cx + dx * scale) - x0  # サンプル座標を小領域ローカル座標へ
+    sy = (cy + dy * scale) - y0
+    # バイリニア補間（小領域内で完結）
+    x0i = np.clip(np.floor(sx), 0, rw - 1).astype(np.int32)
+    y0i = np.clip(np.floor(sy), 0, rh - 1).astype(np.int32)
+    x1i = np.clip(x0i + 1, 0, rw - 1)
+    y1i = np.clip(y0i + 1, 0, rh - 1)
     wx = np.clip(sx - x0i, 0.0, 1.0)[..., None]
     wy = np.clip(sy - y0i, 0.0, 1.0)[..., None]
-    top = arr[y0i, x0i] * (1 - wx) + arr[y0i, x1i] * wx
-    bot = arr[y1i, x0i] * (1 - wx) + arr[y1i, x1i] * wx
+    top = region[y0i, x0i] * (1 - wx) + region[y0i, x1i] * wx
+    bot = region[y1i, x0i] * (1 - wx) + region[y1i, x1i] * wx
     sampled = top * (1 - wy) + bot * wy
     inside = (r <= radius)[..., None]
-    arr[y0:y1, x0:x1] = np.where(inside, sampled, arr[y0:y1, x0:x1])
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+    arr[y0:y1, x0:x1] = np.where(inside, np.clip(sampled, 0, 255),
+                                 region).astype(np.uint8)
+    return Image.fromarray(arr, "RGBA")
 
+
+# ===== スーパーサンプリング: px 系パラメータをまとめて SS 倍 =====
+# 割合(_FRAC)・角度・倍率・色・本数はスケール不変なのでそのまま。
+CANVAS_W *= SS
+CANVAS_H *= SS
+D_FONT_SIZE *= SS
+D_OUTLINE *= SS
+F_FONT_SIZE *= SS
+MAG_LENS_R *= SS
+MAG_LENS_W *= SS
+MAG_HANDLE_GAP *= SS
+MAG_NECK_W *= SS
+MAG_HANDLE_LEN *= SS
+MAG_HANDLE_W *= SS
+BOTTOM_FONT_SIZE *= SS
+BLANK_LEN *= SS
+BLANK_W *= SS
+BLANK_GAP *= SS
+GROUP_GAP *= SS
+BOTTOM_MARGIN *= SS
 
 # ============== セットアップ ==============
 img = Image.new("RGBA", (CANVAS_W, CANVAS_H), BG_COLOR)
@@ -219,7 +255,11 @@ for _ in range(BLANK_COUNT):
         radius=BLANK_W / 2, fill=COLOR)
     bx += BLANK_LEN + BLANK_GAP
 
+# ============== スーパーサンプリング解除（縮小でアンチエイリアス） ==============
+if SS != 1:
+    img = img.resize((CANVAS_W // SS, CANVAS_H // SS), Image.LANCZOS)
+
 # ============== 保存 ==============
 out = "nazo_find.png"
 img.save(out)
-print(f"画像を保存しました: {out} ({CANVAS_W} x {CANVAS_H} px)")
+print(f"画像を保存しました: {out} ({img.width} x {img.height} px)")

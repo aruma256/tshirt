@@ -14,6 +14,14 @@
 
 ## 実装
 - `nazo_find.py` — Python + PIL（他の nazo と揃えた）。冒頭パラメータで全体が連動。
+- アンチエイリアス: PIL の図形描画（ellipse/line/rounded_rectangle）は AA されないため、
+  内部を `SS` 倍で描画し最後に 1/SS へ LANCZOS 縮小（スーパーサンプリング）。これで
+  虫眼鏡・下線・レンズ歪みにもまとめて AA がかかる。改善は SS=1→2 が大きく、2→4 は微小
+  （diminishing returns）。コスト目安: SS=2 ≈ 7秒、SS=4 ≈ 23秒・ピーク約9.8GB（処理は SS²）。
+  高 SS では巨大グリフの一時画像が PIL の圧縮爆弾上限を超えるため、冒頭で
+  `Image.MAX_IMAGE_PIXELS = None` を設定して解除している（画像は自前生成で安全）。
+- bulge は全画素を float 化せず「レンズ周辺の小領域のみ」float 化して省メモリ化済み
+  （`src_d <= d` でサンプル点が必ず半径内に収まる性質を利用）。SS を上げても軽い。
 - 中抜き D は `render_glyph()` で `fill=透明 + stroke` を使い、輪郭のみ描画（内部は透過）。
 - 虫眼鏡: ネックは butt cap の直線で内側端をリング枠内に収め、レンズへの食い込みを防止。
   `MAG_HANDLE_GAP`（ネック長）/ `MAG_NECK_W`（ネック太さ）で調整可。
