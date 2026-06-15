@@ -2,8 +2,9 @@
 
 謎: 大きな中抜きの「D」の中に、虫眼鏡で「F」を見つける。
     → "F in D" = "FIND"。
-    下部の "____ the answer." の 4 つの独立した下線が、
-    答えが 4 文字（find）であることを示す。読みは "find the answer."。
+    下部に "Find the answer." をそのまま表示する。読みは "find the answer."。
+    ※ かつては "Find" を 4 本の下線で伏せて出力していたが、
+      伏せずに出力してから、ペイントツールで手動加工する方針に変更した。
 
 フォント: Source Han Serif JP。
     ※ この環境には Adobe 版 "Source Han Serif" は未インストールだが、
@@ -61,15 +62,10 @@ MAG_HANDLE_W = 200      # 持ち手の太さ
 MAG_HANDLE_ANGLE = 45  # 持ち手の向き（度・画面座標で右下＝45）
 MAG_BULGE = 2.45       # レンズの中心倍率（虫眼鏡で見たときの“膨張感”。1.0で歪みなし）
 
-# --- 下部の "____ the answer." ---
-BOTTOM_FONT_SIZE = 440  # "the answer." のフォントサイズ
-BOTTOM_TEXT = "the answer."
-BLANK_COUNT = 4         # 下線の本数（= 答え "find" の文字数）
-BLANK_LEN = 190         # 下線 1 本の長さ
-BLANK_W = 24            # 下線の太さ
-BLANK_GAP = 40          # 下線どうしの間隔
-GROUP_GAP = 120         # 下線群と "the answer." の間隔
-BOTTOM_MARGIN = 900     # D の下端から下線ベースラインまでの余白
+# --- 下部の "Find the answer." ---
+BOTTOM_FONT_SIZE = 440  # "Find the answer." のフォントサイズ
+BOTTOM_TEXT = "Find the answer."
+BOTTOM_MARGIN = 900     # D の下端からテキストベースラインまでの余白
 
 
 # ============== ヘルパー ==============
@@ -164,10 +160,6 @@ MAG_NECK_W *= SS
 MAG_HANDLE_LEN *= SS
 MAG_HANDLE_W *= SS
 BOTTOM_FONT_SIZE *= SS
-BLANK_LEN *= SS
-BLANK_W *= SS
-BLANK_GAP *= SS
-GROUP_GAP *= SS
 BOTTOM_MARGIN *= SS
 
 # ============== セットアップ ==============
@@ -230,30 +222,18 @@ hx1, hy1 = _on_axis(neck_end + MAG_HANDLE_W / 2)
 hx2, hy2 = _on_axis(lens_r + MAG_HANDLE_LEN)
 round_cap_line(draw, hx1, hy1, hx2, hy2, MAG_HANDLE_W, COLOR)
 
-# ============== 下部 "____ the answer." ==============
+# ============== 下部 "Find the answer." ==============
 b_font = load_font(BOTTOM_FONT_SIZE)
 text_layer = render_glyph(BOTTOM_TEXT, b_font, fill=COLOR)  # 文字列も同様に切り抜き
 TW, TH = text_layer.size
 
-blanks_w = BLANK_COUNT * BLANK_LEN + (BLANK_COUNT - 1) * BLANK_GAP
-total_w = blanks_w + GROUP_GAP + TW
-start_x = (CANVAS_W - total_w) // 2
+start_x = (CANVAS_W - TW) // 2
 
 # ベースライン（D の下端からの余白で決める）。切り抜きの下端 ≒ 文字のベースライン。
 baseline_y = D_top + DH + BOTTOM_MARGIN
 
-# "the answer." を配置（下端をベースラインに合わせる）
-text_x = start_x + blanks_w + GROUP_GAP
-text_y = baseline_y - TH
-img.alpha_composite(text_layer, (round(text_x), round(text_y)))
-
-# 4 本の独立した下線（つなげない）。ベースラインの直下に置く。
-bx = start_x
-for _ in range(BLANK_COUNT):
-    draw.rounded_rectangle(
-        [bx, baseline_y, bx + BLANK_LEN, baseline_y + BLANK_W],
-        radius=BLANK_W / 2, fill=COLOR)
-    bx += BLANK_LEN + BLANK_GAP
+# "Find the answer." を配置（下端をベースラインに合わせる）
+img.alpha_composite(text_layer, (round(start_x), round(baseline_y - TH)))
 
 # ============== スーパーサンプリング解除（縮小でアンチエイリアス） ==============
 if SS != 1:
