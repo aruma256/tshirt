@@ -11,10 +11,15 @@
       （両者は字形が一致する同じ書体）。よってこれを使用する。
 """
 
+import argparse
 import math
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+_parser = argparse.ArgumentParser()
+_parser.add_argument("--color", choices=["black", "white"], default="black")
+_args = _parser.parse_args()
 
 # PIL の「圧縮爆弾」防御上限を解除。画像は自前生成（外部入力なし）で安全であり、
 # SS を上げると巨大グリフの一時画像が既定上限(約1.79億px)を超えて誤検知されるため。
@@ -31,8 +36,8 @@ CANVAS_H = 5200
 # 2 で十分滑らか。3〜4 でさらに高品質（メモリ・処理時間は SS^2 で増える）。
 SS = 4
 
-# 色（黒デザイン）。入稿用に背景は透明。デバッグ時は白 (255,255,255,255) が見やすい。
-COLOR = (0, 0, 0, 255)
+# 色。入稿用に背景は透明。
+COLOR = (0, 0, 0, 255) if _args.color == "black" else (255, 255, 255, 255)
 BG_COLOR = (0, 0, 0, 0)
 
 # フォント（Source Han Serif JP = Noto Serif CJK JP, index 0）
@@ -280,6 +285,6 @@ if SS != 1:
     img = img.resize((CANVAS_W // SS, CANVAS_H // SS), Image.LANCZOS)
 
 # ============== 保存 ==============
-out = "nazo_find.png"
+out = f"nazo_find_{_args.color}.png"
 img.save(out)
 print(f"画像を保存しました: {out} ({img.width} x {img.height} px)")

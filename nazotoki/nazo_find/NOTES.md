@@ -32,8 +32,11 @@
   中心は一様に拡大・リムで圧縮（樽型）。d=1 で恒等となり円外と継ぎ目なく連続。
   強さは `MAG_BULGE`（中心倍率, 既定2.45）。リング枠／持ち手は歪みの後に上描き。
 
+## 出力
+- `python3 nazo_find.py` または `python3 nazo_find.py --color black` → `nazo_find_black.png`（黒）
+- `python3 nazo_find.py --color white` → `nazo_find_white.png`（白）
+- 背景は常に透明（RGBA）。
+
 ## メモ
 - フォントは **Source Han Serif JP**。当環境は未インストールのため、同一書体の
   **Noto Serif CJK JP**（index 0）を使用（字形一致）。
-- 検討用に背景は不透明白（`BG_COLOR` 末尾255）。**入稿時は `(0,0,0,0)`（透明）に戻す**。
-- 色は黒。Tシャツ地色によって反転を検討。
