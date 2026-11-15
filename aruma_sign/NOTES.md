@@ -31,6 +31,9 @@ Python（PIL）と SVG で出力できるようにしたもの。
 - **rect**: 外接矩形の四辺に `MARGIN`（既定はペンの太さ 1 本ぶん）。既定で 4096 x 1900。
 - **square**: rect の上下に余白を足して正方形にしたもの。既定で 4096 x 4096。
   ロゴ部分は rect と画素単位で同じ（rect は square の中央を切り出したものと一致する）。
+- **tight**: 余白なし。外接矩形ぴったり。既定で 4096 x 1681。Web ページなどで、周囲の要素と
+  位置や間隔を自分で揃えたいとき用。横幅いっぱいにロゴが入るので、同じ横幅でも rect より
+  約 1.10 倍大きく写る。高さを整数 px に切り上げるため、上下には 1px 未満の隙間が残りうる。
 - 余白ぶん広がったことで、ロゴは元画像の約 1.07 倍の大きさで写る。
 
 ## 実装
@@ -49,6 +52,7 @@ Python（PIL）と SVG で出力できるようにしたもの。
 ## 出力
 - `python3 aruma_sign.py` → `aruma_sign_rect_black.png` と `.svg`（背景透明）
 - `--shape square` で正方形版（`aruma_sign_square_black.*`）
+- `--shape tight` で余白なし版（`aruma_sign_tight_black.*`）
 - `--color white` で白、`--bg white` / `--bg black` で背景つき（`..._black_on_white.*`）
 - `--width 1024` で横幅を変更（高さは比率から決まる）
 - 他のスクリプトからは `render_png()` / `build_svg()` を import して使える。

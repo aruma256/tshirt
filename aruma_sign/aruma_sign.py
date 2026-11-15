@@ -119,23 +119,27 @@ class Layout(NamedTuple):
 
 
 def layout(shape="rect", width=WIDTH):
-    """shape ("rect" / "square") と横幅(px) から Layout を決める。
+    """shape ("rect" / "square" / "tight") と横幅(px) から Layout を決める。
 
-    横方向はどちらも「外接矩形 + 左右の MARGIN」を width に合わせる。
-      rect:   上下にも MARGIN を取る。
+    横方向はどれも「外接矩形 + 左右の余白」を width に合わせる。
+      rect:   四辺に MARGIN を取る。
       square: rect の上下に余白を足して正方形にする（ロゴは上下中央）。
+      tight:  余白なし。外接矩形ぴったり。
     横長のロゴが前提（縦長だと square で左右が切れる）。
     """
     x0, y0, x1, y1 = content_bbox()
-    scale = width / ((x1 - x0) + 2 * MARGIN)
-    # rect の高さは整数 px へ切り上げ、width と偶奇を揃える。こうすると square との
-    # 差（上下の余白）が上下とも整数 px になり、ロゴ部分の画素が完全に一致する。
-    height = math.ceil(((y1 - y0) + 2 * MARGIN) * scale)
-    height += (width - height) % 2
+    margin = 0 if shape == "tight" else MARGIN
+    scale = width / ((x1 - x0) + 2 * margin)
+    # 高さは整数 px へ切り上げる。切り上げた端数（1px 未満）は上下に均等に入る。
+    height = math.ceil(((y1 - y0) + 2 * margin) * scale)
+    if shape != "tight":
+        # rect の高さは width と偶奇を揃える。こうすると square との差（上下の余白）が
+        # 上下とも整数 px になり、ロゴ部分の画素が完全に一致する。
+        height += (width - height) % 2
     if shape == "square":
         height = width
     top = (y0 + y1) / 2 - height / scale / 2
-    return Layout(x0 - MARGIN, top, scale, width, height)
+    return Layout(x0 - margin, top, scale, width, height)
 
 
 # ============== PNG ==============
@@ -233,8 +237,10 @@ def build_svg(color="black", bg=None, shape="rect", width=WIDTH):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--shape", choices=["rect", "square"], default="rect",
-                        help="rect: 四辺に余白 / square: 上下に余白を足して正方形")
+    parser.add_argument("--shape", choices=["rect", "square", "tight"],
+                        default="rect",
+                        help="rect: 四辺に余白 / square: 上下に余白を足して正方形"
+                             " / tight: 余白なし")
     parser.add_argument("--color", choices=list(COLORS), default="black")
     parser.add_argument("--bg", choices=list(COLORS), default=None,
                         help="背景色（省略時は透明）")
