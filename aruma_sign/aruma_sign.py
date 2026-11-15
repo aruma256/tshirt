@@ -13,6 +13,7 @@
 
 import argparse
 import math
+from typing import NamedTuple
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -22,12 +23,6 @@ from PIL import Image, ImageDraw
 Image.MAX_IMAGE_PIXELS = None
 
 # ============== パラメータ ==============
-# 座標系の基準となる正方形キャンバス（元の GIMP 画像と同じ）。
-CANVAS = 4096
-
-# スーパーサンプリング倍率（内部を SS 倍で描画 → 最後に 1/SS へ縮小して AA）。
-SS = 4
-
 # --- ブラシ（楕円） ---
 # GIMP 上の設定は「サイズ 175 / 縦横比 0.50 / 角度 10」。GIMP の数値はそのまま楕円の
 # 寸法にはならないので、サイズと比は元 PNG に最もよく重なる値（実測フィット）を使う。
@@ -37,7 +32,8 @@ BRUSH_ANGLE = 10     # 長軸の傾き(度)。画面上で時計回り（SVG の
 
 # --- パス ---
 # 各ストロークは 3 次ベジェの連結で、[P0, C1, C2, P1, C1, C2, P2, ...] の並び
-# （SVG の "M P0 C C1 C2 P1 C1 C2 P2 ..." と同じ）。座標は CANVAS 基準の px。
+# （SVG の "M P0 C C1 C2 P1 C1 C2 P2 ..." と同じ）。座標は元の GIMP 画像
+# （4096 x 4096）上の px のまま。以下これを「ロゴ座標」と呼ぶ。
 STROKES = [
     [  # 左の A: 山
         (642, 2740),
@@ -73,14 +69,20 @@ STROKES = [
     ],
 ]
 
+# --- 出力 ---
+# 画像の範囲は GIMP 時代のキャンバスではなく、ロゴの外接矩形から決める。
+MARGIN = BRUSH_SIZE   # 外接矩形の外側に空ける余白（ロゴ座標）。ペンの太さ 1 本ぶん
+WIDTH = 4096          # 出力の横幅(px)の既定値
+
 # --- 描画精度（PNG） ---
+SS = 4                # スーパーサンプリング倍率（SS 倍で描画 → 1/SS へ縮小して AA）
 FLATTEN_STEPS = 256   # ベジェ 1 区間を折れ線にするときの分割数
 ELLIPSE_VERTS = 360   # ブラシ楕円を多角形にするときの頂点数
 
 COLORS = {"black": (0, 0, 0), "white": (255, 255, 255)}
 
 
-# ============== PNG ==============
+# ============== 共通: 折れ線化とレイアウト ==============
 
 def flatten(stroke, steps=FLATTEN_STEPS):
     """ストローク（3 次ベジェの連結）を折れ線の点列 (N, 2) にする。"""
@@ -93,6 +95,50 @@ def flatten(stroke, steps=FLATTEN_STEPS):
         pts.append(seg if i == 0 else seg[1:])
     return np.concatenate(pts)
 
+
+def content_bbox():
+    """ロゴ（ブラシの軌跡）の外接矩形 (x0, y0, x1, y1) をロゴ座標で返す。"""
+    pts = np.concatenate([flatten(stroke) for stroke in STROKES])
+    # パス自体の外接矩形を、傾いた楕円の縦横の半幅だけ外へ広げる。
+    a = BRUSH_SIZE / 2
+    b = a / BRUSH_RATIO
+    th = math.radians(BRUSH_ANGLE)
+    hx = math.hypot(a * math.cos(th), b * math.sin(th))
+    hy = math.hypot(a * math.sin(th), b * math.cos(th))
+    (x0, y0), (x1, y1) = pts.min(axis=0).tolist(), pts.max(axis=0).tolist()
+    return x0 - hx, y0 - hy, x1 + hx, y1 + hy
+
+
+class Layout(NamedTuple):
+    """画像に収める範囲。ロゴ座標 (left, top) が画像の左上、scale は px / ロゴ座標。"""
+    left: float
+    top: float
+    scale: float
+    width: int   # 出力サイズ(px)
+    height: int
+
+
+def layout(shape="rect", width=WIDTH):
+    """shape ("rect" / "square") と横幅(px) から Layout を決める。
+
+    横方向はどちらも「外接矩形 + 左右の MARGIN」を width に合わせる。
+      rect:   上下にも MARGIN を取る。
+      square: rect の上下に余白を足して正方形にする（ロゴは上下中央）。
+    横長のロゴが前提（縦長だと square で左右が切れる）。
+    """
+    x0, y0, x1, y1 = content_bbox()
+    scale = width / ((x1 - x0) + 2 * MARGIN)
+    # rect の高さは整数 px へ切り上げ、width と偶奇を揃える。こうすると square との
+    # 差（上下の余白）が上下とも整数 px になり、ロゴ部分の画素が完全に一致する。
+    height = math.ceil(((y1 - y0) + 2 * MARGIN) * scale)
+    height += (width - height) % 2
+    if shape == "square":
+        height = width
+    top = (y0 + y1) / 2 - height / scale / 2
+    return Layout(x0 - MARGIN, top, scale, width, height)
+
+
+# ============== PNG ==============
 
 def brush_outline(k, n=ELLIPSE_VERTS):
     """ブラシ楕円の輪郭（中心原点・k 倍に拡大）を、頂点列と各頂点の外向き法線で返す。"""
@@ -108,14 +154,14 @@ def brush_outline(k, n=ELLIPSE_VERTS):
     return verts, normals
 
 
-def render_mask(size=CANVAS, ss=SS):
-    """ロゴの形を size x size の 'L' 画像（0=外, 255=内）で返す。"""
-    k = size / CANVAS * ss
-    mask = Image.new("L", (size * ss, size * ss), 0)
+def render_mask(lay, ss=SS):
+    """ロゴの形を lay の範囲・サイズの 'L' 画像（0=外, 255=内）で返す。"""
+    k = lay.scale * ss
+    mask = Image.new("L", (lay.width * ss, lay.height * ss), 0)
     draw = ImageDraw.Draw(mask)
     verts, normals = brush_outline(k)
     for stroke in STROKES:
-        pts = flatten(stroke) * k
+        pts = (flatten(stroke) - (lay.left, lay.top)) * k
         for p0, p1 in zip(pts[:-1], pts[1:]):
             # 2 つの楕円の凸包: 法線が進行方向を向く頂点は終点側、それ以外は
             # 始点側の楕円から取る。頂点の並び順はそのままで凸多角形になる。
@@ -127,12 +173,13 @@ def render_mask(size=CANVAS, ss=SS):
     return mask.reduce(ss) if ss != 1 else mask
 
 
-def render_png(color="black", bg=None, size=CANVAS, ss=SS):
+def render_png(color="black", bg=None, shape="rect", width=WIDTH, ss=SS):
     """ロゴを RGBA 画像で返す。bg=None なら背景は透明。"""
-    img = Image.new("RGBA", (size, size), COLORS[color] + (0,))
-    img.putalpha(render_mask(size, ss))
+    lay = layout(shape, width)
+    img = Image.new("RGBA", (lay.width, lay.height), COLORS[color] + (0,))
+    img.putalpha(render_mask(lay, ss))
     if bg is not None:
-        base = Image.new("RGBA", (size, size), COLORS[bg] + (255,))
+        base = Image.new("RGBA", img.size, COLORS[bg] + (255,))
         base.alpha_composite(img)
         img = base
     return img
@@ -144,13 +191,14 @@ def _num(x):
     return f"{x:.3f}".rstrip("0").rstrip(".")
 
 
-def build_svg(color="black", bg=None, size=CANVAS):
-    """ロゴの SVG 文字列を返す。size は width/height 属性（viewBox は CANVAS 固定）。"""
+def build_svg(color="black", bg=None, shape="rect", width=WIDTH):
+    """ロゴの SVG 文字列を返す。画像の範囲とサイズは PNG と同じ。"""
+    lay = layout(shape, width)
     th = math.radians(BRUSH_ANGLE)
     c, s = math.cos(th), math.sin(th)
 
     def to_pen_space(p):
-        # <g> の transform = rotate(角度) scale(1, 1/比) の逆変換。
+        # <g> の transform のうち rotate(角度) scale(1, 1/比) の逆変換。
         # この座標系では、ブラシは直径 BRUSH_SIZE の真円になる。
         x, y = p
         return (c * x + s * y, (-s * x + c * y) * BRUSH_RATIO)
@@ -160,14 +208,18 @@ def build_svg(color="black", bg=None, size=CANVAS):
         q = [" ".join(_num(v) for v in to_pen_space(p)) for p in stroke]
         paths.append(f'    <path d="M {q[0]} C {" ".join(q[1:])}"/>')
 
+    # viewBox はロゴ座標の縮尺のまま、原点だけ画像の左上へずらす（translate）。
+    view_w = _num(lay.width / lay.scale)
+    view_h = _num(lay.height / lay.scale)
     lines = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}"'
-        f' viewBox="0 0 {CANVAS} {CANVAS}">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{lay.width}"'
+        f' height="{lay.height}" viewBox="0 0 {view_w} {view_h}">',
     ]
     if bg is not None:
-        lines.append(f'  <rect width="{CANVAS}" height="{CANVAS}" fill="{bg}"/>')
+        lines.append(f'  <rect width="{view_w}" height="{view_h}" fill="{bg}"/>')
     lines += [
-        f'  <g transform="rotate({_num(BRUSH_ANGLE)}) scale(1 {1 / BRUSH_RATIO:.6f})"'
+        f'  <g transform="translate({_num(-lay.left)} {_num(-lay.top)})'
+        f' rotate({_num(BRUSH_ANGLE)}) scale(1 {1 / BRUSH_RATIO:.6f})"'
         f' fill="none" stroke="{color}" stroke-width="{_num(BRUSH_SIZE)}"'
         f' stroke-linecap="round" stroke-linejoin="round">',
         *paths,
@@ -181,23 +233,25 @@ def build_svg(color="black", bg=None, size=CANVAS):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--shape", choices=["rect", "square"], default="rect",
+                        help="rect: 四辺に余白 / square: 上下に余白を足して正方形")
     parser.add_argument("--color", choices=list(COLORS), default="black")
     parser.add_argument("--bg", choices=list(COLORS), default=None,
                         help="背景色（省略時は透明）")
-    parser.add_argument("--size", type=int, default=CANVAS,
-                        help="出力の一辺(px)")
+    parser.add_argument("--width", type=int, default=WIDTH,
+                        help="出力の横幅(px)")
     args = parser.parse_args()
 
-    stem = f"aruma_sign_{args.color}"
+    stem = f"aruma_sign_{args.shape}_{args.color}"
     if args.bg is not None:
         stem += f"_on_{args.bg}"
 
-    img = render_png(args.color, args.bg, args.size)
+    img = render_png(args.color, args.bg, args.shape, args.width)
     img.save(f"{stem}.png")
     print(f"画像を保存しました: {stem}.png ({img.width} x {img.height} px)")
 
     with open(f"{stem}.svg", "w") as f:
-        f.write(build_svg(args.color, args.bg, args.size))
+        f.write(build_svg(args.color, args.bg, args.shape, args.width))
     print(f"画像を保存しました: {stem}.svg")
 
 

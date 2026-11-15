@@ -23,23 +23,35 @@ Python（PIL）と SVG で出力できるようにしたもの。
   になるはずで、実測の 1.47 とも合う。
 - サイズが 175 より小さいのは、175 がアンチエイリアスの余白込みのマスク幅だからと推定。
 
+## 画像の範囲（余白）
+元の GIMP 画像は 4096 x 4096 の中央にロゴがあり、上下に大きな余白があった。
+いまはキャンバスではなく、ロゴの外接矩形（パスの外接矩形をブラシの半幅ぶん広げたもの）から
+範囲を決める。パスの座標は GIMP 時代のまま変えていない。
+
+- **rect**: 外接矩形の四辺に `MARGIN`（既定はペンの太さ 1 本ぶん）。既定で 4096 x 1900。
+- **square**: rect の上下に余白を足して正方形にしたもの。既定で 4096 x 4096。
+  ロゴ部分は rect と画素単位で同じ（rect は square の中央を切り出したものと一致する）。
+- 余白ぶん広がったことで、ロゴは元画像の約 1.07 倍の大きさで写る。
+
 ## 実装
 - PNG: パスを折れ線にし、線分ごとに「両端に置いた楕円の凸包」を塗る（楕円を線分に沿って
   動かした軌跡と同じ形）。内部を `SS` 倍で描いて 1/SS に面積平均で縮小し、AA をかける。
 - SVG: 楕円ブラシ = 円ブラシをアフィン変換したもの、という性質を使う。パスを逆変換した座標で
-  持ち、丸ペンの stroke を `<g transform="rotate(10) scale(1 0.68)">` で楕円に戻す。
+  持ち、丸ペンの stroke を `<g transform="... rotate(10) scale(1 0.68)">` で楕円に戻す。
   ベジェ曲線はアフィン変換で形が保たれるので、近似ではなく同じ形になる。
+  画像の範囲は同じ `<g>` の先頭の `translate` で合わせる。
 
-## 検証（4096 px、2 値化して比較）
-- PNG と元 PNG: IoU 99.79%。差は輪郭の ±1px 以内のみ。
-- SVG（Chrome で描画）と PNG: IoU 99.90%。右の A の頂点付近だけ Chrome 側が約 0.5px ずれる
-  （太い stroke の描画精度によるもの）。
+## 検証（2 値化して比較）
+- PNG と元 PNG（元のキャンバス配置で描いて比較）: IoU 99.79%。差は輪郭の ±1px 以内のみ。
+- SVG（Chrome で描画）と PNG: rect / square とも IoU 99.90%。右の A の頂点付近だけ
+  Chrome 側が約 0.5px ずれる（太い stroke の描画精度によるもの）。
 
 ## 出力
-- `python3 aruma_sign.py` → `aruma_sign_black.png` と `aruma_sign_black.svg`（背景透明）
-- `--color white` で白、`--bg white` / `--bg black` で背景つき（`aruma_sign_black_on_white.*`）
-- `--size 1024` で出力サイズ変更（座標は 4096 基準のまま全体を縮小）
-- 他のスクリプトからは `render_mask()` / `render_png()` / `build_svg()` を import して使える。
+- `python3 aruma_sign.py` → `aruma_sign_rect_black.png` と `.svg`（背景透明）
+- `--shape square` で正方形版（`aruma_sign_square_black.*`）
+- `--color white` で白、`--bg white` / `--bg black` で背景つき（`..._black_on_white.*`）
+- `--width 1024` で横幅を変更（高さは比率から決まる）
+- 他のスクリプトからは `render_png()` / `build_svg()` を import して使える。
 
 ## メモ
 - SVG は「stroke ＋ 縦横で倍率の違う transform」に依存する。ブラウザや Inkscape では正しく
